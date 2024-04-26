@@ -40,8 +40,16 @@ class _ImageUploaderState extends State<ImageUploader> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _uploading = false;
-  final Reference userStorageReference =
-      FirebaseStorage.instance.ref().child('images/'); // Constant folder path
+  final TextEditingController _idController = TextEditingController();
+  final Reference storageReference =
+      FirebaseStorage.instance.ref(); // Root storage reference
+  final ValueNotifier<String> _idNotifier = ValueNotifier<String>('');
+
+  @override
+  void dispose() {
+    _idNotifier.dispose();
+    super.dispose();
+  }
 
   Future<void> _getImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -51,59 +59,72 @@ class _ImageUploaderState extends State<ImageUploader> {
   }
 
   Future<void> _uploadImage() async {
-  setState(() {
-    _uploading = true;
-  });
-
-  try {
-    if (_imageFile != null) {
-      // Create a unique filename for the image
-      String fileName = '${DateTime.now()}.png';
-
-      // Upload the image to the constant folder path
-      UploadTask uploadTask =
-          userStorageReference.child(fileName).putFile(_imageFile!);
-      await uploadTask.whenComplete(() {
-        print('Image uploaded');
-        // Clear the image file after successful upload
-        setState(() {
-          _imageFile = null;
-        });
-      });
-    } else {
-      if (kDebugMode) {
-        print('No image selected');
-      }
-    }
-  } catch (e) {
-    if (kDebugMode) {
-      print('Error uploading image: $e');
-    }
-  } finally {
     setState(() {
-      _uploading = false;
+      _uploading = true;
     });
-  }
-}
-
-
-  Future<List<String>> _getUserImages() async {
-    List<String> imageURLs = [];
 
     try {
-      // List all items in the constant folder path
-      ListResult result = await userStorageReference.listAll();
+      if (_imageFile != null) {
+        String id = _idController.text.trim();
+        if (id.isNotEmpty) {
+          // Create a unique filename for the image
+          String fileName = '${DateTime.now()}.png';
 
-      // Iterate through each item and get the download URL
-      for (Reference ref in result.items) {
-        String downloadURL = await ref.getDownloadURL();
-        imageURLs.add(downloadURL);
+          // Construct the path based on the entered ID
+          String path = 'images/$id/$fileName';
+
+          // Upload the image to the specified folder
+          UploadTask uploadTask =
+              storageReference.child(path).putFile(_imageFile!);
+          await uploadTask.whenComplete(() {
+            print('Image uploaded');
+            setState(() {
+              _imageFile = null;
+            });
+          });
+        } else {
+          if (kDebugMode) {
+            print('ID cannot be empty');
+          }
+        }
+      } else {
+        if (kDebugMode) {
+          print('No image selected');
+        }
       }
     } catch (e) {
-      print('Error fetching user images: $e');
+      if (kDebugMode) {
+        print('Error uploading image: $e');
+      }
+    } finally {
+      setState(() {
+        _uploading = false;
+      });
     }
+  }
 
-    return imageURLs;
+  Future<List<String>> _getUserImages(String id) async {
+    if (id.isNotEmpty) {
+      List<String> imageURLs = [];
+      try {
+        // Construct the path based on the entered ID
+        String path = 'images/$id/';
+
+        // List all items in the specified folder
+        ListResult result = await storageReference.child(path).listAll();
+
+        // Iterate through each item and get the download URL
+        for (Reference ref in result.items) {
+          String downloadURL = await ref.getDownloadURL();
+          imageURLs.add(downloadURL);
+        }
+      } catch (e) {
+        print('Error fetching user images: $e');
+      }
+      return imageURLs;
+    } else {
+      return [];
+    }
   }
 
   @override
@@ -116,21 +137,41 @@ class _ImageUploaderState extends State<ImageUploader> {
           style: TextStyle(color: Colors.white),
         ),
       ),
-      body: FutureBuilder<List<String>>(
-        future: _getUserImages(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            // While data is loading, display a loading indicator
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            // If there's an error, display an error message
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else {
-            // If data is successfully fetched, display the GalleryView
-            List<String> userImages = snapshot.data!;
-            return GalleryView(images: userImages);
-          }
-        },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20.0), // Adjust the padding as needed
+            child: TextField(
+              controller: _idController,
+              decoration: const InputDecoration(
+                labelText: 'Enter ID',
+              ),
+              onChanged: (value) {
+                _idNotifier.value = value;
+              },
+            ),
+          ),
+          Expanded(
+            child: ValueListenableBuilder<String>(
+              valueListenable: _idNotifier,
+              builder: (context, id, _) {
+                return FutureBuilder<List<String>>(
+                  future: _getUserImages(id),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    } else {
+                      List<String> userImages = snapshot.data ?? [];
+                      return GalleryView(images: userImages);
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
