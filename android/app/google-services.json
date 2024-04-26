@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "910030302421",
+    "firebase_url": "https://cloud-computing-2616f-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "cloud-computing-2616f",
+    "storage_bucket": "cloud-computing-2616f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:910030302421:android:d6f4f9173fadcb8e11c65c",
+        "android_client_info": {
+          "package_name": "com.example.flutter_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCq-OaGbxsxxdAKee7jFTWgFAnAKG46byc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:910030302421:android:0629b066fb176ec911c65c",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCq-OaGbxsxxdAKee7jFTWgFAnAKG46byc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
